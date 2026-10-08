@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Schedule & Countdown Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .light .glass {
+            background: rgba(255, 255, 255, 0.7);
+        }
+        /* Custom progress ring smooth transition */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col transition-colors duration-300 light:bg-slate-50 light:text-slate-800">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 light:bg-white/80 light:border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-sky-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-bold text-xl">
+                    <i class="fa-solid font-bold fa-clock"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide text-white light:text-slate-900">Period Tracker</h1>
+                    <p class="text-xs text-slate-400 light:text-slate-500">School Daily Schedule</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <!-- Live Digital Clock -->
+                <div class="hidden sm:flex flex-col items-end px-3 py-1 bg-slate-800/50 light:bg-slate-100 rounded-lg border border-slate-700/50 light:border-slate-200">
+                    <span id="current-time" class="font-mono font-bold text-sm text-sky-400 light:text-sky-600">--:--:-- --</span>
+                    <span id="current-date" class="text-[10px] text-slate-400 light:text-slate-500 uppercase tracking-wider">Today</span>
+                </div>
+
+                <!-- Notifications Toggle -->
+                <button id="sound-btn" onclick="toggleSound()" title="Toggle Sound Alerts" class="p-2.5 rounded-xl bg-slate-800/80 light:bg-slate-200 text-slate-300 light:text-slate-700 hover:text-white hover:bg-slate-700 transition">
+                    <i id="sound-icon" class="fa-solid fa-volume-xmark text-lg"></i>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button id="theme-btn" onclick="toggleTheme()" title="Toggle Theme" class="p-2.5 rounded-xl bg-slate-800/80 light:bg-slate-200 text-slate-300 light:text-slate-700 hover:text-white hover:bg-slate-700 transition">
+                    <i id="theme-icon" class="fa-solid fa-sun text-lg"></i>
+                </button>
+
+                <!-- Settings Modal Button -->
+                <button onclick="openModal()" title="Edit Schedule" class="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md shadow-indigo-600/20">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Mobile Live Time -->
+        <div class="sm:hidden flex items-center justify-between px-4 py-2 bg-slate-900/60 light:bg-white rounded-xl border border-slate-800 light:border-slate-200">
+            <span class="text-xs text-slate-400 uppercase tracking-wider">Current Time</span>
+            <span id="mobile-current-time" class="font-mono font-bold text-sky-400 light:text-sky-600">--:--:--</span>
+        </div>
+
+        <!-- Hero Section / Primary Countdown Display -->
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 p-6 sm:p-10 shadow-2xl light:from-white light:via-slate-50 light:to-sky-50/30 light:border-slate-200/80">
+            <!-- Background Glow Decorator -->
+            <div id="hero-glow" class="absolute -right-20 -top-20 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+                
+                <!-- Left Details -->
+                <div class="lg:col-span-7 space-y-4 text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 light:bg-slate-200/80 border border-slate-700 light:border-slate-300">
+                        <span id="status-badge-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="status-badge-text" class="text-xs font-semibold uppercase tracking-wider text-slate-300 light:text-slate-700">In Progress</span>
+                    </div>
+
+                    <h2 id="current-period-title" class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white light:text-slate-900">
+                        Homeroom
+                    </h2>
+
+                    <p id="current-period-timeframe" class="text-slate-400 light:text-slate-600 font-mono text-sm sm:text-base">
+                        9:45 AM – 9:50 AM
+                    </p>
+
+                    <!-- Progress Bar -->
+                    <div class="space-y-2 pt-2">
+                        <div class="flex justify-between text-xs font-semibold text-slate-400 light:text-slate-500">
+                            <span>Period Elapsed</span>
+                            <span id="progress-percentage-text" class="text-sky-400 light:text-sky-600">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 light:bg-slate-200 rounded-full h-3 overflow-hidden p-0.5 border border-slate-700/50 light:border-slate-300">
+                            <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Countdown Timer Block -->
+                <div class="lg:col-span-5 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-slate-800 light:border-slate-200 pt-6 lg:pt-0 lg:pl-8">
+                    <span id="countdown-label" class="text-xs font-bold uppercase tracking-widest text-slate-400 light:text-slate-500 mb-2">Time Remaining</span>
+                    
+                    <div class="font-mono text-5xl sm:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400 light:from-sky-600 light:to-indigo-700 my-2">
+                        <span id="countdown-timer">00:00</span>
+                    </div>
+
+                    <p id="next-up-preview" class="text-xs text-slate-400 light:text-slate-500 mt-2 text-center">
+                        Up Next: <span class="font-semibold text-slate-200 light:text-slate-700" id="next-period-name">--</span>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Visual Timeline & Schedule -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white light:text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-sky-400"></i> Daily Schedule Timeline
+                </h3>
+                <span class="text-xs text-slate-400 light:text-slate-500" id="schedule-count-badge">3 Periods Loaded</span>
+            </div>
+
+            <!-- Schedule Cards Grid -->
+            <div id="schedule-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Cards dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Quick Summary Table Component -->
+        <div class="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-6 light:bg-white light:border-slate-200 shadow-lg space-y-4">
+            <h4 class="text-base font-semibold text-slate-200 light:text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-table-cells text-indigo-400"></i> Schedule Overview
+            </h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-400 light:text-slate-600">
+                    <thead class="text-xs uppercase bg-slate-800/60 light:bg-slate-100 text-slate-300 light:text-slate-700 rounded-lg">
+                        <tr>
+                            <th class="px-4 py-3 rounded-l-lg">Period Name</th>
+                            <th class="px-4 py-3">Start Time</th>
+                            <th class="px-4 py-3">End Time</th>
+                            <th class="px-4 py-3">Duration</th>
+                            <th class="px-4 py-3 rounded-r-lg">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-table-body" class="divide-y divide-slate-800/50 light:divide-slate-200">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 light:border-slate-200 light:text-slate-400">
+        <p>School Class Period Countdown Dashboard • Responsive Real-Time Tracker</p>
+    </footer>
+
+    <!-- Edit Schedule Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl light:bg-white light:border-slate-200 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800 light:border-slate-200 pb-4">
+                <h3 class="text-lg font-bold text-white light:text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-sky-400"></i> Customize Schedule
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white light:hover:text-slate-800">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Inputs Container -->
+            <div id="modal-period-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                <!-- Dynamically rendered period input rows -->
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="addNewPeriodInput()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 light:bg-slate-100 light:hover:bg-slate-200 text-slate-200 light:text-slate-800 text-xs font-semibold rounded-xl border border-slate-700 light:border-slate-300 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add Period
+                </button>
+                <button onclick="resetToDefaultSchedule()" class="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl border border-rose-500/20 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Default
+                </button>
+            </div>
+
+            <div class="flex justify-end space-x-3 border-t border-slate-800 light:border-slate-200 pt-4">
+                <button onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white light:text-slate-600 light:hover:text-slate-900">
+                    Cancel
+                </button>
+                <button onclick="saveScheduleFromModal()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-lg shadow-indigo-600/30">
+                    Save Schedule
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DEFAULT SCHEDULE DATA ---
+        const DEFAULT_SCHEDULE = [
+            { id: 1, name: "Homeroom", start: "09:45", end: "09:50" },
+            { id: 2, name: "Period 1", start: "09:53", end: "10:27" },
+            { id: 3, name: "Period 2", start: "10:30", end: "11:04" }
+        ];
+
+        // State Variables
+        let schedule = [];
+        let soundEnabled = false;
+        let lastNotifiedPeriod = null;
+
+        // --- INIT FUNCTION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSchedule();
+            updateClockAndCountdown();
+            setInterval(updateClockAndCountdown, 1000);
+            renderScheduleList();
+            renderScheduleTable();
+        });
+
+        // --- LOCAL STORAGE & SCHEDULE LOAD ---
+        function loadSchedule() {
+            const saved = localStorage.getItem('school_schedule');
+            if (saved) {
+                try {
+                    schedule = JSON.parse(saved);
+                } catch (e) {
+                    schedule = [...DEFAULT_SCHEDULE];
+                }
+            } else {
+                schedule = [...DEFAULT_SCHEDULE];
+            }
+        }
+
+        function saveSchedule() {
+            localStorage.setItem('school_schedule', JSON.stringify(schedule));
+        }
+
+        // --- HELPER TIME PARSERS ---
+        function getTodayTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date;
+        }
+
+        function format12Hour(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const period = h >= 12 ? 'PM' : 'AM';
+            const displayH = h % 12 || 12;
+            return `${displayH}:${m.toString().padStart(2, '0')} ${period}`;
+        }
+
+        function formatDuration(startStr, endStr) {
+            const start = getTodayTime(startStr);
+            const end = getTodayTime(endStr);
+            const diffMins = Math.round((end - start) / 60000);
+            return `${diffMins} mins`;
+        }
+
+        function formatCountdownTime(totalSeconds) {
+            if (totalSeconds < 0) totalSeconds = 0;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- CORE REAL-TIME LOGIC ---
+        function updateClockAndCountdown() {
+            const now = new Date();
+
+            // Update Header Clocks
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            const timeString = now.toLocaleTimeString('en-US', timeOptions);
+            const dateString = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+            document.getElementById('current-time').textContent = timeString;
+            document.getElementById('mobile-current-time').textContent = timeString;
+            document.getElementById('current-date').textContent = dateString;
+
+            // Determine Schedule State
+            if (schedule.length === 0) {
+                updateUIState("NO_SCHEDULE");
+                return;
+            }
+
+            // Sort schedule by start time
+            const sortedSchedule = [...schedule].sort((a, b) => getTodayTime(a.start) - getTodayTime(b.start));
+
+            const firstPeriodStart = getTodayTime(sortedSchedule[0].start);
+            const lastPeriodEnd = getTodayTime(sortedSchedule[sortedSchedule.length - 1].end);
+
+            // Check Active Period
+            let activePeriod = null;
+            let activeIndex = -1;
+
+            for (let i = 0; i < sortedSchedule.length; i++) {
+                const pStart = getTodayTime(sortedSchedule[i].start);
+                const pEnd = getTodayTime(sortedSchedule[i].end);
+
+                if (now >= pStart && now <= pEnd) {
+                    activePeriod = sortedSchedule[i];
+                    activeIndex = i;
+                    break;
+                }
+            }
+
+            if (activePeriod) {
+                // IN A PERIOD
+                const pStart = getTodayTime(activePeriod.start);
+                const pEnd = getTodayTime(activePeriod.end);
+                const totalSecs = (pEnd - pStart) / 1000;
+                const elapsedSecs = (now - pStart) / 1000;
+                const remainingSecs = Math.max(0, Math.floor((pEnd - now) / 1000));
+                const progressPercent = Math.min(100, Math.max(0, (elapsedSecs / totalSecs) * 100));
+
+                const nextPeriod = sortedSchedule[activeIndex + 1] || null;
+
+                updateUIState("IN_PROGRESS", {
+                    title: activePeriod.name,
+                    timeframe: `${format12Hour(activePeriod.start)} – ${format12Hour(activePeriod.end)}`,
+                    remaining: remainingSecs,
+                    progress: progressPercent,
+                    nextName: nextPeriod ? `${nextPeriod.name} (${format12Hour(nextPeriod.start)})` : "End of School Day"
+                });
+
+                triggerPeriodAudioAlert(activePeriod.name);
+
+            } else if (now < firstPeriodStart) {
+                // BEFORE SCHOOL STARTS
+                const remainingSecs = Math.floor((firstPeriodStart - now) / 1000);
+                updateUIState("BEFORE_SCHOOL", {
+                    title: "Before School",
+                    timeframe: `First Period starts at ${format12Hour(sortedSchedule[0].start)}`,
+                    remaining: remainingSecs,
+                    progress: 0,
+                    nextName: sortedSchedule[0].name
+                });
+
+            } else if (now > lastPeriodEnd) {
+                // AFTER SCHOOL
+                updateUIState("AFTER_SCHOOL", {
+                    title: "School Dismissed",
+                    timeframe: `Classes finished for today`,
+                    remaining: 0,
+                    progress: 100,
+                    nextName: "None (Done for today)"
+                });
+
+            } else {
+                // PASSING PERIOD / BETWEEN CLASSES
+                let nextPeriod = null;
+                for (let i = 0; i < sortedSchedule.length; i++) {
+                    const pStart = getTodayTime(sortedSchedule[i].start);
+                    if (now < pStart) {
+                        nextPeriod = sortedSchedule[i];
+                        break;
+                    }
+                }
+
+                if (nextPeriod) {
+                    const pStart = getTodayTime(nextPeriod.start);
+                    const remainingSecs = Math.floor((pStart - now) / 1000);
+
+                    updateUIState("PASSING_PERIOD", {
+                        title: "Passing Period",
+                        timeframe: `Next class: ${nextPeriod.name} at ${format12Hour(nextPeriod.start)}`,
+                        remaining: remainingSecs,
+                        progress: 0,
+                        nextName: `${nextPeriod.name} (${format12Hour(nextPeriod.start)})`
+                    });
+                }
+            }
+
+            // Refresh cards highlight
+            highlightActiveCard(activePeriod);
+        }
+
+        function updateUIState(state, data = {}) {
+            const titleElem = document.getElementById('current-period-title');
+            const timeframeElem = document.getElementById('current-period-timeframe');
+            const timerElem = document.getElementById('countdown-timer');
+            const progressFill = document.getElementById('progress-bar-fill');
+            const progressText = document.getElementById('progress-percentage-text');
+            const nextPeriodElem = document.getElementById('next-period-name');
+            const statusDot = document.getElementById('status-badge-dot');
+            const statusText = document.getElementById('status-badge-text');
+            const countdownLabel = document.getElementById('countdown-label');
+
+            if (state === "IN_PROGRESS") {
+                titleElem.textContent = data.title;
+                timeframeElem.textContent = data.timeframe;
+                timerElem.textContent = formatCountdownTime(data.remaining);
+                progressFill.style.width = `${data.progress.toFixed(1)}%`;
+                progressText.textContent = `${Math.round(data.progress)}%`;
+                nextPeriodElem.textContent = data.nextName;
+
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                statusText.textContent = "Class In Progress";
+                countdownLabel.textContent = "Time Remaining In Class";
+
+            } else if (state === "PASSING_PERIOD") {
+                titleElem.textContent = "Passing Period";
+                timeframeElem.textContent = data.timeframe;
+                timerElem.textContent = formatCountdownTime(data.remaining);
+                progressFill.style.width = `0%`;
+                progressText.textContent = `0%`;
+                nextPeriodElem.textContent = data.nextName;
+
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+                statusText.textContent = "Passing Period";
+                countdownLabel.textContent = "Until Next Period Starts";
+
+            } else if (state === "BEFORE_SCHOOL") {
+                titleElem.textContent = "Before School";
+                timeframeElem.textContent = data.timeframe;
+                timerElem.textContent = formatCountdownTime(data.remaining);
+                progressFill.style.width = `0%`;
+                progressText.textContent = `0%`;
+                nextPeriodElem.textContent = data.nextName;
+
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-sky-500";
+                statusText.textContent = "Before School";
+                countdownLabel.textContent = "Until School Starts";
+
+            } else if (state === "AFTER_SCHOOL") {
+                titleElem.textContent = "School Day Over";
+                timeframeElem.textContent = data.timeframe;
+                timerElem.textContent = "00:00";
+                progressFill.style.width = `100%`;
+                progressText.textContent = `100%`;
+                nextPeriodElem.textContent = data.nextName;
+
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-slate-500";
+                statusText.textContent = "Dismissed";
+                countdownLabel.textContent = "School Completed";
+            }
+        }
+
+        // Render Schedule Grid Cards
+        function renderScheduleList() {
+            const listContainer = document.getElementById('schedule-list');
+            listContainer.innerHTML = '';
+
+            const sorted = [...schedule].sort((a, b) => getTodayTime(a.start) - getTodayTime(b.start));
+            document.getElementById('schedule-count-badge').textContent = `${sorted.length} Periods Scheduled`;
+
+            sorted.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.id = `schedule-card-${item.id}`;
+                card.className = "relative p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 light:bg-white light:border-slate-200 shadow-md transition-all duration-300";
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-800 light:bg-slate-100 text-slate-400 light:text-slate-600 uppercase tracking-wider">
+                            Period ${index + 1}
+                        </span>
+                        <span class="text-xs font-mono text-slate-400 light:text-slate-500">
+                            ${formatDuration(item.start, item.end)}
+                        </span>
+                    </div>
+                    <h4 class="text-lg font-bold text-white light:text-slate-900">${item.name}</h4>
+                    <p class="text-sm font-mono text-sky-400 light:text-sky-600 mt-1">
+                        ${format12Hour(item.start)} – ${format12Hour(item.end)}
+                    </p>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Render Schedule Overview Table
+        function renderScheduleTable() {
+            const tbody = document.getElementById('schedule-table-body');
+            tbody.innerHTML = '';
+
+            const sorted = [...schedule].sort((a, b) => getTodayTime(a.start) - getTodayTime(b.start));
+
+            sorted.forEach((item) => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-800/30 light:hover:bg-slate-50 transition";
+                row.innerHTML = `
+                    <td class="px-4 py-3 font-semibold text-white light:text-slate-800">${item.name}</td>
+                    <td class="px-4 py-3 font-mono text-slate-300 light:text-slate-600">${format12Hour(item.start)}</td>
+                    <td class="px-4 py-3 font-mono text-slate-300 light:text-slate-600">${format12Hour(item.end)}</td>
+                    <td class="px-4 py-3 font-mono text-slate-400 light:text-slate-500">${formatDuration(item.start, item.end)}</td>
+                    <td class="px-4 py-3">
+                        <span id="table-status-${item.id}" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 light:bg-slate-200 light:text-slate-600">
+                            Scheduled
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Highlight visual active card
+        function highlightActiveCard(activePeriod) {
+            schedule.forEach(item => {
+                const card = document.getElementById(`schedule-card-${item.id}`);
+                const tableBadge = document.getElementById(`table-status-${item.id}`);
+
+                if (!card) return;
+
+                const pStart = getTodayTime(item.start);
+                const pEnd = getTodayTime(item.end);
+                const now = new Date();
+
+                if (activePeriod && activePeriod.id === item.id) {
+                    // Active
+                    card.className = "relative p-5 rounded-2xl bg-gradient-to-br from-indigo-900/40 to-sky-900/30 border-2 border-sky-500 light:from-sky-50 light:to-indigo-50/50 light:border-sky-500 shadow-lg shadow-sky-500/10 scale-[1.02] transition-all duration-300";
+                    if (tableBadge) {
+                        tableBadge.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30";
+                        tableBadge.textContent = "Active Now";
+                    }
+                } else if (now > pEnd) {
+                    // Passed
+                    card.className = "relative p-5 rounded-2xl bg-slate-900/30 border border-slate-800/40 opacity-60 light:bg-slate-100/60 light:border-slate-200 transition-all duration-300";
+                    if (tableBadge) {
+                        tableBadge.className = "text-xs px-2.5 py-1 rounded-full bg-slate-800/60 text-slate-500 light:bg-slate-200 light:text-slate-500";
+                        tableBadge.textContent = "Finished";
+                    }
+                } else {
+                    // Upcoming
+                    card.className = "relative p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 light:bg-white light:border-slate-200 shadow-md transition-all duration-300";
+                    if (tableBadge) {
+                        tableBadge.className = "text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 light:bg-indigo-50 light:text-indigo-600 font-medium";
+                        tableBadge.textContent = "Upcoming";
+                    }
+                }
+            });
+        }
+
+        // Theme Toggle Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.className = 'fa-solid fa-moon text-lg';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun text-lg';
+            }
+        }
+
+        // Sound Toggle & Web Audio Synthesizer Beep Alert
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-lg text-emerald-400';
+                playChime(); // Play test chime
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg';
+            }
+        }
+
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5 tone
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.3); // A5 tone
+
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {
+                console.log("Audio play blocked or unsupported");
+            }
+        }
+
+        function triggerPeriodAudioAlert(periodName) {
+            if (!soundEnabled) return;
+            if (lastNotifiedPeriod !== periodName) {
+                playChime();
+                lastNotifiedPeriod = periodName;
+            }
+        }
+
+        // --- MODAL CONTROLS & SCHEDULE EDITING ---
+        function openModal() {
+            renderModalInputs();
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function renderModalInputs() {
+            const container = document.getElementById('modal-period-list');
+            container.innerHTML = '';
+
+            schedule.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center gap-2 bg-slate-800/40 light:bg-slate-100 p-2.5 rounded-xl border border-slate-700/50 light:border-slate-300";
+                row.innerHTML = `
+                    <input type="text" value="${item.name}" placeholder="Period Name" class="modal-name flex-grow px-3 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                    <input type="time" value="${item.start}" class="modal-start px-2 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                    <span class="text-xs text-slate-500">to</span>
+                    <input type="time" value="${item.end}" class="modal-end px-2 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                    <button onclick="removePeriodInput(this)" class="p-1.5 text-rose-400 hover:text-rose-300 transition">
+                        <i class="fa-solid fa-trash text-sm"></i>
+                    </button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addNewPeriodInput() {
+            const container = document.getElementById('modal-period-list');
+            const row = document.createElement('div');
+            row.className = "flex items-center gap-2 bg-slate-800/40 light:bg-slate-100 p-2.5 rounded-xl border border-slate-700/50 light:border-slate-300";
+            row.innerHTML = `
+                <input type="text" value="Period ${container.children.length + 1}" placeholder="Period Name" class="modal-name flex-grow px-3 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                <input type="time" value="11:10" class="modal-start px-2 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                <span class="text-xs text-slate-500">to</span>
+                <input type="time" value="11:50" class="modal-end px-2 py-1.5 bg-slate-900 light:bg-white text-white light:text-slate-900 text-xs rounded-lg border border-slate-700 light:border-slate-300 focus:outline-none focus:border-indigo-500">
+                <button onclick="removePeriodInput(this)" class="p-1.5 text-rose-400 hover:text-rose-300 transition">
+                    <i class="fa-solid fa-trash text-sm"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removePeriodInput(btn) {
+            btn.parentElement.remove();
+        }
+
+        function saveScheduleFromModal() {
+            const rows = document.querySelectorAll('#modal-period-list > div');
+            const newSchedule = [];
+
+            rows.forEach((row, idx) => {
+                const name = row.querySelector('.modal-name').value.trim() || `Period ${idx + 1}`;
+                const start = row.querySelector('.modal-start').value;
+                const end = row.querySelector('.modal-end').value;
+
+                if (start && end) {
+                    newSchedule.push({
+                        id: Date.now() + idx,
+                        name: name,
+                        start: start,
+                        end: end
+                    });
+                }
+            });
+
+            if (newSchedule.length === 0) {
+                return;
+            }
+
+            schedule = newSchedule;
+            saveSchedule();
+            renderScheduleList();
+            renderScheduleTable();
+            updateClockAndCountdown();
+            closeModal();
+        }
+
+        function resetToDefaultSchedule() {
+            schedule = [...DEFAULT_SCHEDULE];
+            saveSchedule();
+            renderScheduleList();
+            renderScheduleTable();
+            updateClockAndCountdown();
+            closeModal();
+        }
+    </script>
+</body>
+</html>
